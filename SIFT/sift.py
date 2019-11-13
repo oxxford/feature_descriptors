@@ -1,3 +1,7 @@
+"""
+Combining all steps together
+"""
+
 from skimage.color import rgb2gray
 from scipy.ndimage.filters import convolve
 
