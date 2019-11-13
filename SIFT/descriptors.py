@@ -1,40 +1,19 @@
+"""
+The last step of SIFT. Creating descriptors.
+"""
+
 import numpy as np
 import numpy.linalg as LA
-
-from SIFT.DoG_pyramid import gaussian_filter
-from SIFT.orientation import quantize_orientation, cart_to_polar_grad
-
-
-def get_patch_grads(p):
-    r1 = np.zeros_like(p)
-    r1[-1] = p[-1]
-    r1[:-1] = p[1:]
-
-    r2 = np.zeros_like(p)
-    r2[0] = p[0]
-    r2[1:] = p[:-1]
-
-    dy = r1 - r2
-
-    r1[:, -1] = p[:, -1]
-    r1[:, :-1] = p[:, 1:]
-
-    r2[:, 0] = p[:, 0]
-    r2[:, 1:] = p[:, :-1]
-
-    dx = r1 - r2
-
-    return dx, dy
 
 
 def get_histogram_for_subregion(m, theta, num_bin, reference_angle, bin_width, subregion_w):
     hist = np.zeros(num_bin, dtype=np.float32)
     c = subregion_w / 2 - .5
 
-    for i, (mag, angle) in enumerate(zip(m, theta)):
+    for i, (magnitude, angle) in enumerate(zip(m, theta)):
         angle = (angle - reference_angle) % 360
-        binno = quantize_orientation(angle, num_bin)
-        vote = mag
+        binno = int(np.floor(angle)//bin_width)
+        vote = magnitude
 
         # binno*bin_width is the start angle of the histogram bin
         # binno*bin_width+bin_width/2 is the center of the histogram bin
@@ -52,46 +31,22 @@ def get_histogram_for_subregion(m, theta, num_bin, reference_angle, bin_width, s
     return hist
 
 
-def get_local_descriptors(kps, octave, w=16, num_subregion=4, num_bin=8):
-    descs = []
+def get_local_descriptors(keypoints, octave, w=16, num_subregion=4, num_bin=8):
+    descriptors = []
     bin_width = 360 // num_bin
 
-    for kp in kps:
+    for kp in keypoints:
         cx, cy, s = int(kp[0]), int(kp[1]), int(kp[2])
         s = np.clip(s, 0, octave.shape[2] - 1)
-        kernel = gaussian_filter(w / 6)  # gaussian_filter multiplies sigma by 3
         L = octave[..., s]
 
         t, l = max(0, cy - w // 2), max(0, cx - w // 2)
         b, r = min(L.shape[0], cy + w // 2 + 1), min(L.shape[1], cx + w // 2 + 1)
         patch = L[t:b, l:r]
 
-        dx, dy = get_patch_grads(patch)
-
-        if dx.shape[0] < w + 1:
-            if t == 0:
-                kernel = kernel[kernel.shape[0] - dx.shape[0]:]
-            else:
-                kernel = kernel[:dx.shape[0]]
-        if dx.shape[1] < w + 1:
-            if l == 0:
-                kernel = kernel[kernel.shape[1] - dx.shape[1]:]
-            else:
-                kernel = kernel[:dx.shape[1]]
-
-        if dy.shape[0] < w + 1:
-            if t == 0:
-                kernel = kernel[kernel.shape[0] - dy.shape[0]:]
-            else:
-                kernel = kernel[:dy.shape[0]]
-        if dy.shape[1] < w + 1:
-            if l == 0:
-                kernel = kernel[kernel.shape[1] - dy.shape[1]:]
-            else:
-                kernel = kernel[:dy.shape[1]]
-
-        m, theta = cart_to_polar_grad(dx, dy)
-        dx, dy = dx * kernel, dy * kernel
+        dx, dy = get_patch_gradients(patch)
+        m = np.sqrt(dx ** 2 + dy ** 2)
+        theta = (np.arctan2(dy, dx) + np.pi) * 180 / np.pi
 
         subregion_w = w // num_subregion
         featvec = np.zeros(num_bin * num_subregion ** 2, dtype=np.float32)
@@ -107,12 +62,31 @@ def get_local_descriptors(kps, octave, w=16, num_subregion=4, num_bin=8):
                                                    kp[3],
                                                    bin_width,
                                                    subregion_w)
-                featvec[
-                i * subregion_w * num_bin + j * num_bin:i * subregion_w * num_bin + (j + 1) * num_bin] = hist.flatten()
+                featvec[i * subregion_w * num_bin + j * num_bin:i * subregion_w * num_bin + (j + 1) * num_bin] = hist.flatten()
 
         featvec /= max(1e-6, LA.norm(featvec))
         featvec[featvec > 0.2] = 0.2
         featvec /= max(1e-6, LA.norm(featvec))
-        descs.append(featvec)
+        descriptors.append(featvec)
 
-    return np.array(descs)
+    return np.array(descriptors)
+
+
+def get_patch_gradients(patch):
+    temp = np.zeros_like(patch)
+    temp[-1] = patch[-1]
+    temp[:-1] = patch[1:]
+    temp2 = np.zeros_like(patch)
+    temp2[0] = patch[0]
+    temp2[1:] = patch[:-1]
+
+    dy = temp - temp2
+
+    temp[:, -1] = patch[:, -1]
+    temp[:, :-1] = patch[:, 1:]
+    temp2[:, 0] = patch[:, 0]
+    temp2[:, 1:] = patch[:, :-1]
+
+    dx = temp - temp2
+
+    return dx, dy
