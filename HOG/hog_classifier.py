@@ -2,32 +2,7 @@ from skimage.transform import resize
 from numpy.linalg import norm
 import cv2
 import numpy as np
-
-class StatModel(object):
-    '''parent class - starting point to add abstraction'''
-    def load(self, fn):
-        self.model.load(fn)
-    def save(self, fn):
-        self.model.save(fn)
-
-class SVM(StatModel):
-    '''wrapper for OpenCV SimpleVectorMachine algorithm'''
-    def __init__(self):
-        self.model = cv2.ml.SVM_create()
-
-    def train(self, samples, responses):
-        #setting algorithm parameters
-        self.model.setType(cv2.ml.SVM_C_SVC)
-        self.model.setKernel(cv2.ml.SVM_LINEAR)
-        self.model.train(samples, cv2.ml.ROW_SAMPLE, responses)
-
-    def predict(self, samples):
-        res = []
-        for sample in samples:
-            pr = self.model.predict(sample)
-            pr = pr[1][0][0]
-            res.append(pr)
-        return res
+from commons.svm import SVM
 
 class HOG(object):
 
@@ -35,11 +10,13 @@ class HOG(object):
         self.clf = SVM()
 
     def __hog_desc(self, img, window_size = 8, stride = 4, bin_n = 9):
-        proc_img = np.float32(resize(img, (128, 64)))
+
+        height = 128
+        width = 64
+
+        proc_img = np.float32(resize(img, (height, width)))
         proc_img = cv2.cvtColor(proc_img, cv2.COLOR_BGR2GRAY)
 
-        height = len(proc_img)
-        width = len(proc_img[0])
         features = []
         for y in range(0, height - window_size, stride):
             for x in range(0, width - window_size, stride):
@@ -62,6 +39,12 @@ class HOG(object):
                 hist /= norm(hist) + eps
                 features.extend(hist)
 
+        if len(features) != 3780:
+            if len(features) > 3780:
+                features = features[:3780]
+            if len(features) < 3780:
+                features += [0] * (3780 - len(features))
+
         return np.float32(features)
 
     def train(self, images, labels):
@@ -74,14 +57,21 @@ class HOG(object):
             if count%50 == 0:
                 print("Size of vector %d" % (len(ft)))
                 print("Completed: %d" % (count))
-        labels = np.array(labels)
-        print(np.array(descriptors).shape)
-        self.clf.train(np.array(descriptors), np.array([labels]).transpose())
+        train_data = np.matrix(descriptors, dtype=np.float32)
+        labels = np.array([labels]).transpose()
+        self.clf.train(train_data, labels)
 
     def predict(self, samples):
         features = []
         for sample in samples:
-            ft = self.__hog_desc(sample)
-            ft = np.transpose(np.array([ft]).transpose(), (1, 0))
+            ft = np.float32(self.__hog_desc(sample))
             features.append(ft)
-        return self.clf.predict(features)
+        predict_data = np.matrix(features, dtype=np.float32)
+        return self.clf.predict(predict_data)
+
+
+    def save(self, path):
+        self.clf.save(path)
+
+    def load(self, path):
+        self.clf.load(path)
