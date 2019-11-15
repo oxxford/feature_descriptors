@@ -15,7 +15,7 @@ def get_data(path="./dog_dataset"):
     breeds = {}
     nums = []
     imgs = []
-    for label in labels[:3]: # TODO: remove bounding
+    for label in labels: # TODO: remove bounding
         label_path = path + "/" + label
         files = os.listdir(label_path)
         name = label[(label.find("-")+1):]
