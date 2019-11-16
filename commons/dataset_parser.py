@@ -2,10 +2,14 @@ import glob
 import os
 from skimage.io import imread
 
+"""
+This function implements 
+"""
+
 
 def get_data(path="./dog_dataset"):
     """
-    :param path:
+    :param path: path to dataset folder
     :return: imgs - list of images
              nums - list of corresponding numerical breed-values
              dict{numerical breed: name of breed}
@@ -27,5 +31,3 @@ def get_data(path="./dog_dataset"):
             imgs.append(img)
             nums.append(num)
     return imgs, nums, breeds
-
-# imgs, nums, breeds = get_data()
