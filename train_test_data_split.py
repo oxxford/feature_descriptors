@@ -2,7 +2,6 @@ import random
 from sklearn.model_selection import train_test_split
 from commons.custom_pickle_loader import save_as_pickled_object
 from commons.dataset_parser import get_data
-
 import json
 
 """
@@ -13,12 +12,14 @@ Here we split half of original dataset into train and test sets
 def main():
     imgs, nums, breeds = get_data(path="./dog_dataset")
 
+    # here we count how many images are in first 60 classes
+    # sa that later we can slice arrays with that number
     new=-1
     unique=0
     count=0
     for i in range(len(nums)):
-        if nums[i]!=new:
-            if unique == 60:
+        if nums[i]!=new:  # encountered new class
+            if unique == 60:  # already have 60 unique classes
                 break
             else:
                 new = nums[i]

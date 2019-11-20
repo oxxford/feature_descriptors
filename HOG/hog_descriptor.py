@@ -8,7 +8,14 @@ This is the implementation of HOG descriptor as it was described in original pap
 """
 
 def hog_desc(img, window_size = 8, stride = 4, bin_n = 9):
-
+    """
+    This function constructs HOG feature descriptor for an image
+    :param img: np array - input image
+    :param window_size:
+    :param stride:
+    :param bin_n:
+    :return: vector of features
+    """
     height = 128
     width = 64
 
@@ -37,6 +44,7 @@ def hog_desc(img, window_size = 8, stride = 4, bin_n = 9):
             hist /= norm(hist) + eps
             features.extend(hist)
 
+    # handling irregular length of feature vector
     if len(features) != 3780:
         if len(features) > 3780:
             features = features[:3780]
