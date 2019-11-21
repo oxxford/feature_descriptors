@@ -10,6 +10,8 @@ The feature vectors are saved for later training
 
 
 def main():
+
+  # loading train and test images
   imgs_train = try_to_load_as_pickled_object_or_None("../main_data/imgs_train.pkl")
   imgs_test = try_to_load_as_pickled_object_or_None("../main_data/imgs_test.pkl")
 
