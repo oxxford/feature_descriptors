@@ -11,6 +11,7 @@ from sklearn.metrics import accuracy_score
 """
 Training code here is just for the demonstration. 
 Actual training process was done in https://drive.google.com/open?id=11UIlDa06doJyN6Ynz_eaKAUH9bc3w4QM
+You can check it in FAST training.ipynb
 """
 
 
